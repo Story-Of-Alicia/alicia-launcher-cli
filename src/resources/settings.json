@@ -18,6 +18,6 @@
     "CloseTime": ""
   },
   "executableProgram": "Alicia.exe",
-  "executableArguments": "-GameID 4",
+  "executableArguments": "-GameID 0",
   "launch": true
 }

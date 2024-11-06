@@ -132,9 +132,11 @@ int main(int argc, char** argv)
   // do not spawn the game.
   if(!settings._launch)
   {
-    spdlog::info("Not launching the game. Idling until input from console.");
+    spdlog::info("Not launching the game. Idling in the brackground until input from console.");
     int a;
     std::cin >> a;
+
+    return 0;
   }
 
   STARTUPINFO startupInfo{.cb = sizeof(STARTUPINFO)};

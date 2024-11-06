@@ -35,13 +35,13 @@ struct WebInfo
 };
 
 //! Hosts a launch web information for the game.
-class WebInfoHost
+class WebInfoHost final
 {
 public:
   //! Default constructor.
   WebInfoHost() = default;
 
-  //! Default destructor.
+  //! Destructor.
   ~WebInfoHost();
 
   //! Hosts the provided web info.
@@ -58,7 +58,6 @@ private:
   std::string _webInfoId;
   //! A web info.
   WebInfo _webInfo{};
-
   //! A handle to the web info file.
   HANDLE _webInfoMappingHandle = nullptr;
 };
