@@ -1,4 +1,4 @@
 add_subdirectory(json)
 
-set(SPDLOG_BUILD_SHARED ON)
+option(SPDLOG_BUILD_SHARED OFF)
 add_subdirectory(spdlog)
