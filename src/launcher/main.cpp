@@ -132,9 +132,7 @@ int main(int argc, char** argv)
   if(!settings._launch)
   {
     spdlog::info("Not launching the game. Idling in the background until input from console.");
-    int a;
-    std::cin >> a;
-
+    std::cin.ignore();
     return 0;
   }
 
@@ -142,7 +140,8 @@ int main(int argc, char** argv)
   PROCESS_INFORMATION processInfo{};
 
   spdlog::info("Launching the game...");
-  if(!CreateProcess(
+
+  WINBOOL result = CreateProcess(
          settings._executableProgram.data(),
          settings._executableArguments.data(),
          nullptr,
@@ -152,7 +151,9 @@ int main(int argc, char** argv)
          nullptr,
          nullptr,
          &startupInfo,
-         &processInfo)) {
+         &processInfo);
+
+  if(result == FALSE && GetLastError() != NO_ERROR) {
     if(GetLastError() == ERROR_ELEVATION_REQUIRED) {
       spdlog::error("Can't launch the game, elevation is required");
       MessageBox(
@@ -160,17 +161,24 @@ int main(int argc, char** argv)
           "Couldn't launch the game, run the launcher as an administrator.",
           "Launcher",
           MB_OK);
-    }
-    else {
-      spdlog::error("Can't launch the game, misc error");
+    } else {
+      char buf[256];
+      size_t const size = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                     nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                     buf, std::size(buf), nullptr);
+
+      spdlog::error("Can't launch the game: {0}", std::string(buf, size - 2)); // minus 2 to remove CRLF FormatMessageA appends
+
       MessageBox(
           nullptr,
-          "Couldn't launch the game, is the executable in the working directory of this app?",
+          "Failed to launch the game, check the console window for more information.",
           "Launcher",
           MB_OK);
     }
-  }
-  else {
+
+    spdlog::info("Press ENTER to exit");
+    std::cin.ignore();
+  } else {
     spdlog::info("Game launched, idling until the process exits.");
     WaitForSingleObject(processInfo.hProcess, INFINITE);
 
