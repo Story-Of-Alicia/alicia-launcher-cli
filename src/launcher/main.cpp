@@ -163,9 +163,14 @@ int main(int argc, char** argv)
           MB_OK);
     } else {
       char buf[256];
-      size_t const size = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-                     nullptr, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                     buf, std::size(buf), nullptr);
+      size_t const size = FormatMessageA(
+          FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+          nullptr,
+          GetLastError(),
+          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+          buf,
+          std::size(buf),
+          nullptr);
 
       spdlog::error("Can't launch the game: {0}", std::string(buf, size - 2)); // minus 2 to remove CRLF FormatMessageA appends
 
