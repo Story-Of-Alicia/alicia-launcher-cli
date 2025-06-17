@@ -40,20 +40,21 @@ void load_settings(const std::string_view& path, Settings& settings)
 
     const nlohmann::json& webInfoContentJson = json["webInfoContent"];
     settings._webInfoContent = {
-        .gameId = webInfoContentJson["GameId"],
-        .memberNo = webInfoContentJson["MemberNo"],
-        .loginId = webInfoContentJson["LoginId"],
-        .authKey = webInfoContentJson["AuthKey"],
-        .installUrl = webInfoContentJson["InstallUrl"],
-        .serverType = webInfoContentJson["ServerType"],
-        .serverInfo = webInfoContentJson["ServerInfo"],
-        .sex = static_cast<alicia::WebInfo::Sex>(webInfoContentJson["Sex"]),
-        .birthday = webInfoContentJson["Birthday"],
-        .wardNo = webInfoContentJson["WardNo"],
-        .cityCode = webInfoContentJson["CityCode"],
-        .zipCode = webInfoContentJson["ZipCode"],
-        .pcBangNo = webInfoContentJson["PcBangNo"],
-        .closeTime = webInfoContentJson["CloseTime"],
+      .gameId = webInfoContentJson["GameId"],
+      .memberNo = webInfoContentJson["MemberNo"],
+      .loginId = webInfoContentJson["LoginId"],
+      .authKey = webInfoContentJson["AuthKey"],
+      .installUrl = webInfoContentJson["InstallUrl"],
+      .serverType = webInfoContentJson["ServerType"],
+      .serverInfo = webInfoContentJson["ServerInfo"],
+      .age = webInfoContentJson["Age"],
+      .sex = static_cast<alicia::WebInfo::Sex>(webInfoContentJson["Sex"]),
+      .birthday = webInfoContentJson["Birthday"],
+      .wardNo = webInfoContentJson["WardNo"],
+      .cityCode = webInfoContentJson["CityCode"],
+      .zipCode = webInfoContentJson["ZipCode"],
+      .pcBangNo = webInfoContentJson["PcBangNo"],
+      .closeTime = webInfoContentJson["CloseTime"],
     };
 
     settings._executableProgram = json["executableProgram"];
@@ -129,7 +130,7 @@ int main(int argc, char** argv)
   }
 
   // If launch is not set to true, do not spawn the game.
-  if(!settings._launch)
+  if (!settings._launch)
   {
     spdlog::info("Not launching the game. Idling in the background until input from console.");
     int a;
@@ -138,22 +139,28 @@ int main(int argc, char** argv)
     return 0;
   }
 
-  STARTUPINFO startupInfo{.cb = sizeof(STARTUPINFO)};
+  STARTUPINFO startupInfo{
+    .cb = sizeof(STARTUPINFO)};
   PROCESS_INFORMATION processInfo{};
 
-  spdlog::info("Launching the game...");
-  if(!CreateProcess(
-         settings._executableProgram.data(),
-         settings._executableArguments.data(),
-         nullptr,
-         nullptr,
-         FALSE,
-         0,
-         nullptr,
-         nullptr,
-         &startupInfo,
-         &processInfo)) {
-    if(GetLastError() == ERROR_ELEVATION_REQUIRED) {
+  spdlog::info(
+    "Launching the game ({} {})...",
+    settings._executableProgram,
+    settings._executableArguments);
+
+  if (!CreateProcess(
+     settings._executableProgram.data(),
+     settings._executableArguments.data(),
+     nullptr,
+     nullptr,
+     FALSE,
+     0,
+     nullptr,
+     nullptr,
+     &startupInfo,
+     &processInfo))
+  {
+    if (GetLastError() == ERROR_ELEVATION_REQUIRED) {
       spdlog::error("Can't launch the game, elevation is required");
       MessageBox(
           nullptr,
@@ -162,7 +169,7 @@ int main(int argc, char** argv)
           MB_OK);
     }
     else {
-      spdlog::error("Can't launch the game, misc error");
+      spdlog::error("Can't launch the game, is the executable in the working directory of this app?");
       MessageBox(
           nullptr,
           "Couldn't launch the game, is the executable in the working directory of this app?",
@@ -172,11 +179,14 @@ int main(int argc, char** argv)
   }
   else {
     spdlog::info("Game launched, idling until the process exits.");
-    WaitForSingleObject(processInfo.hProcess, INFINITE);
 
     DWORD exitCode = 0;
-    GetExitCodeProcess(processInfo.hProcess, &exitCode);
-    spdlog::info("Game exited with code {}.", exitCode);
+    do {
+      WaitForSingleObject(processInfo.hProcess, 1'000);
+
+      GetExitCodeProcess(processInfo.hProcess, &exitCode);
+      spdlog::info("Game exited with code {}.", exitCode);
+    } while(exitCode == STILL_ACTIVE);
   }
 
   return 0;

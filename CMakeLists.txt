@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.23)
 project(alicia-launcher-cli
     LANGUAGES CXX
     DESCRIPTION "Command-line Alicia launcher"
-    VERSION 1.2)
+    VERSION 1.3)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 

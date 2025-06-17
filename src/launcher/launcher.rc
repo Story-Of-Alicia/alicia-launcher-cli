@@ -1,6 +1,6 @@
 1 VERSIONINFO
- FILEVERSION 1,2,0,0
- PRODUCTVERSION 1,2,0,0
+ FILEVERSION 1,3,0,0
+ PRODUCTVERSION 1,3,0,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -23,7 +23,7 @@ BEGIN
             VALUE "LegalCopyright", "2025 Story of Alicia"
             VALUE "OriginalFilename", "alicia-launcher-cli.exe"
             VALUE "ProductName", "Command-line Alicia launcher"
-            VALUE "ProductVersion", "1, 2, 0, 0"
+            VALUE "ProductVersion", "1, 3, 0, 0"
         END
     END
     BLOCK "VarFileInfo"
