@@ -14,9 +14,10 @@ target_compile_features(project_properties
         INTERFACE cxx_std_20)
 
 add_executable(alicia-launcher-cli
-        src/launcher/main.cpp
-        src/launcher/alicia.cpp
-        src/launcher/launcher.rc)
+        src/launcher/util/Util.cpp
+        src/launcher/Alicia.cpp
+        src/launcher/launcher.rc
+        src/launcher/main.cpp)
 
 # Copy the resources
 add_custom_command(
