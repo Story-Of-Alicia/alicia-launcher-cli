@@ -13,10 +13,12 @@
 #include <windows.h>
 #include <winerror.h>
 
-namespace {
+namespace
+{
 
 //! Settings.
-struct Settings {
+struct Settings
+{
   std::string _webInfoId;
   alicia::WebInfo _webInfoContent;
   std::string _executableProgram;
@@ -30,7 +32,8 @@ struct Settings {
 void load_settings(const std::string_view& path, Settings& settings)
 {
   std::ifstream settingsFile(path.data());
-  if(!settingsFile.is_open()) {
+  if (!settingsFile.is_open())
+  {
     throw std::runtime_error("The settings file does not exist.");
   }
 
@@ -62,7 +65,7 @@ void load_settings(const std::string_view& path, Settings& settings)
     settings._executableArguments = json["executableArguments"];
     settings._launch = json["launch"];
   }
-  catch(const nlohmann::json::exception& x)
+  catch (const nlohmann::json::exception& x)
   {
     throw x;
   }
@@ -77,25 +80,25 @@ void register_protocol(const std::string& name, const std::string& path)
   int result;
 
   result = RegCreateKeyA(HKEY_CLASSES_ROOT, (LPCSTR)name.c_str(), &protocol);
-  if(result != ERROR_SUCCESS)
+  if (result != ERROR_SUCCESS)
     throw std::runtime_error("failed to create registry key HKEY_CLASSES_ROOT\\a2launch");
 
   result = RegSetValueEx(protocol, nullptr, 0, REG_SZ, (LPBYTE) "URL:a2launch Protocol", 22);
-  if(result != ERROR_SUCCESS)
+  if (result != ERROR_SUCCESS)
     throw std::runtime_error("failed to create registry value in 'HKEY_CLASSES_ROOT\\a2launch'");
 
   result = RegSetValueEx(protocol, "URL Protocol", 0, REG_SZ, nullptr, 0);
-  if(result != ERROR_SUCCESS)
+  if (result != ERROR_SUCCESS)
     throw std::runtime_error("failed to create registry value in 'HKEY_CLASSES_ROOT\\a2launch'");
 
   result = RegCreateKeyA(protocol, (LPCSTR) "shell\\open\\command", &command);
-  if(result != ERROR_SUCCESS)
+  if (result != ERROR_SUCCESS)
     throw std::runtime_error(
-        "failed to create registry key 'HKEY_CLASSES_ROOT\\shell\\open\\command'");
+      "failed to create registry key 'HKEY_CLASSES_ROOT\\shell\\open\\command'");
 
   auto path_data = path.c_str();
   result = RegSetValueEx(command, nullptr, 0, REG_SZ, (LPBYTE)path_data, strlen(path_data));
-  if(result != ERROR_SUCCESS)
+  if (result != ERROR_SUCCESS)
     throw std::runtime_error("failed to create registry value for command in "
                              "'HKEY_CLASSES_ROOT\\a2launch\\shell\\open\\command'");
 }
@@ -110,30 +113,30 @@ int main(int argc, char** argv)
     load_settings("settings.json", settings);
     spdlog::info("Loaded the settings.");
   }
-  catch(std::exception& x)
+  catch (std::exception& x)
   {
     spdlog::error("Failed to load the settings: {}.", x.what());
-    MessageBox(nullptr, "Failed to load settings.", "Launcher", MB_OK);
+    MessageBox(nullptr, "Failed to load the settings file.", "Launcher", MB_OK | MB_ICONERROR);
     return 1;
   }
 
   alicia::WebInfoHost webInfoHost;
   try
   {
-    webInfoHost.host(settings._webInfoId, settings._webInfoContent);
+    webInfoHost.begin(settings._webInfoId, settings._webInfoContent);
     spdlog::info("Hosted the web info.");
   }
-  catch(const std::exception& e)
+  catch (const std::exception& e)
   {
     spdlog::error("Failed to host web info: {}", e.what());
-    MessageBox(nullptr, "Couldn't host the web info.", "Launcher", MB_OK);
+    MessageBox(nullptr, "Couldn't host the web info.", "Launcher", MB_OK | MB_ICONERROR);
     return 0;
   }
 
   // If launch is not set to true, do not spawn the game.
   if (!settings._launch)
   {
-    spdlog::info("Not launching the game. Idling in the background until input from console.");
+    spdlog::info("Not launching the game.");
     std::cin.ignore();
     return 0;
   }
@@ -146,38 +149,52 @@ int main(int argc, char** argv)
     settings._executableProgram,
     settings._executableArguments);
 
-  BOOL result = CreateProcess(
-         settings._executableProgram.data(),
-         settings._executableArguments.data(),
-         nullptr,
-         nullptr,
-         FALSE,
-         0,
-         nullptr,
-         nullptr,
-         &startupInfo,
-         &processInfo);
+  const BOOL result = CreateProcess(
+    settings._executableProgram.data(),
+    settings._executableArguments.data(),
+    nullptr,
+    nullptr,
+    FALSE,
+    0,
+    nullptr,
+    nullptr,
+    &startupInfo,
+    &processInfo);
 
-  if(result == FALSE && GetLastError() != NO_ERROR) {
-    if (GetLastError() == ERROR_ELEVATION_REQUIRED) {
+  const auto lastWindowsError = GetLastError();
+  if (result == FALSE && lastWindowsError != NO_ERROR)
+  {
+    if (lastWindowsError == ERROR_ELEVATION_REQUIRED)
+    {
       spdlog::error("Can't launch the game, elevation is required");
       MessageBox(
-          nullptr,
-          "Couldn't launch the game, run the launcher as an administrator.",
-          "Launcher",
-          MB_OK);
-    } else {
+        nullptr,
+        "Couldn't launch the game, run the launcher as an administrator.",
+        "Launcher",
+        MB_OK | MB_ICONERROR);
+    }
+    if (lastWindowsError == ERROR_FILE_NOT_FOUND)
+    {
+      spdlog::error("Can't launch the game, the executable file was not found.");
+      MessageBox(
+        nullptr,
+        "Couldn't launch the game, is the launcher in the working directory of the game?",
+        "Launcher",
+        MB_OK | MB_ICONERROR);
+    }
+    else
+    {
       std::wstring errorMessageBuffer;
       errorMessageBuffer.resize(256);
 
       size_t const size = FormatMessageW(
-          FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-          nullptr,
-          GetLastError(),
-          MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-          errorMessageBuffer.data(),
-          errorMessageBuffer.size(),
-          nullptr);
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        lastWindowsError,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        errorMessageBuffer.data(),
+        errorMessageBuffer.size(),
+        nullptr);
       errorMessageBuffer.resize(size);
 
       const std::string errorMessage = util::win32_narrow(
@@ -188,24 +205,28 @@ int main(int argc, char** argv)
         errorMessage);
 
       MessageBox(
-          nullptr,
-          "Failed to launch the game, check the console window for more information.",
-          "Launcher",
-          MB_OK);
+        nullptr,
+        "Failed to launch the game, check the console window for more information.",
+        "Launcher",
+        MB_OK | MB_ICONERROR);
     }
 
-    spdlog::info("Press ENTER to exit");
+    spdlog::info("Waiting for input in order to exit (press ENTER).");
     std::cin.ignore();
-  } else {
+  }
+  else
+  {
     spdlog::info("Game launched, idling until the process exits.");
 
     DWORD exitCode = 0;
-    do {
-      WaitForSingleObject(processInfo.hProcess, 1'000);
-
+    do
+    {
+      WaitForSingleObject(processInfo.hProcess, 500);
       GetExitCodeProcess(processInfo.hProcess, &exitCode);
-      spdlog::info("Game exited with code {}.", exitCode);
-    } while(exitCode == STILL_ACTIVE);
+    } while (exitCode == STILL_ACTIVE);
+
+    spdlog::info("Game exited with code {}.", exitCode);
+    return 0;
   }
 
   return 0;

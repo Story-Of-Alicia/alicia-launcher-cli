@@ -1,9 +1,9 @@
 #ifndef ALICIA_HPP
 #define ALICIA_HPP
 
-#include <string>
 #include <cstdint>
 #include <filesystem>
+#include <string>
 
 #include <windows.h>
 
@@ -13,8 +13,11 @@ namespace alicia
 //! Web launch information.
 struct WebInfo
 {
-  enum class Sex {
-    UNSPECIFIED, FEMALE, MALE
+  enum class Sex
+  {
+    UNSPECIFIED,
+    FEMALE,
+    MALE
   };
 
   std::string gameId;
@@ -48,7 +51,8 @@ public:
   //!
   //! @param webInfoId Web info Id.
   //! @param webInfo Web info.
-  void host(std::string webInfoId, WebInfo& webInfo);
+  void begin(std::string webInfoId, WebInfo& webInfo);
+  void end();
 
 private:
   void create();
@@ -58,15 +62,18 @@ private:
   std::string _webInfoId;
   //! A web info.
   WebInfo _webInfo{};
-  //! A handle to the web info file.
+  //! A handle to the web info file
+  HANDLE _webInfoFileHandle = nullptr;
+  //! A handle to the web info file mapping.
   HANDLE _webInfoMappingHandle = nullptr;
 };
 
-class ModHost {
+class ModHost
+{
 public:
   void loadMod(std::filesystem::path path);
 };
 
 } // namespace alicia
 
-#endif //ALICIA_HPP
+#endif // ALICIA_HPP

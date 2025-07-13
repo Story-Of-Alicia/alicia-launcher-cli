@@ -1,17 +1,52 @@
 ---
 Language: Cpp
-ColumnLimit: 100
+
+UseTab: Never
 IndentWidth: 2
 PPIndentWidth: 2
-NamespaceIndentation: All
-BreakBeforeBraces: Stroustrup
-AlwaysBreakAfterReturnType: None
-AlwaysBreakAfterDefinitionReturnType: None
+LambdaBodyIndentation: Signature
+IndentPPDirectives: BeforeHash
+ContinuationIndentWidth: 2
+ConstructorInitializerIndentWidth: 2
+
+AllowShortLambdasOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: Never
+
+IndentCaseBlocks: true
+IndentCaseLabels: true
+NamespaceIndentation: None
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  AfterExternBlock: true
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: true
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+PackConstructorInitializers: Never
+BreakConstructorInitializersBeforeComma: true
+BinPackParameters: false
+BinPackArguments: false
+ExperimentalAutoDetectBinPacking: true
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: true
+AlignConsecutiveDeclarations: None
+AlignAfterOpenBracket: DontAlign
+InsertNewlineAtEOF: true
 PointerAlignment: Left
 ReferenceAlignment: Left
-AlignAfterOpenBracket: AlwaysBreak
-BinPackArguments: false
-BinPackParameters: false
-SpaceBeforeParens: Never
-UseTab: Never
 SortIncludes: CaseInsensitive
+ColumnLimit: 0
+SpaceBeforeParens: ControlStatements
