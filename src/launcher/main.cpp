@@ -1,4 +1,5 @@
-#include "alicia.hpp"
+#include "Alicia.hpp"
+#include "util/Util.hpp"
 
 #include <cstdio>
 #include <fstream>
@@ -145,7 +146,7 @@ int main(int argc, char** argv)
     settings._executableProgram,
     settings._executableArguments);
 
-  WINBOOL result = CreateProcess(
+  BOOL result = CreateProcess(
          settings._executableProgram.data(),
          settings._executableArguments.data(),
          nullptr,
@@ -166,17 +167,25 @@ int main(int argc, char** argv)
           "Launcher",
           MB_OK);
     } else {
-      char buf[256];
-      size_t const size = FormatMessageA(
+      std::wstring errorMessageBuffer;
+      errorMessageBuffer.resize(256);
+
+      size_t const size = FormatMessageW(
           FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
           nullptr,
           GetLastError(),
           MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-          buf,
-          std::size(buf),
+          errorMessageBuffer.data(),
+          errorMessageBuffer.size(),
           nullptr);
+      errorMessageBuffer.resize(size);
 
-      spdlog::error("Can't launch the game: {0}", std::string(buf, size - 2)); // minus 2 to remove CRLF FormatMessageA appends
+      const std::string errorMessage = util::win32_narrow(
+        errorMessageBuffer.substr(0, errorMessageBuffer.length()));
+
+      spdlog::error(
+        "Can't launch the game: {0}",
+        errorMessage);
 
       MessageBox(
           nullptr,
