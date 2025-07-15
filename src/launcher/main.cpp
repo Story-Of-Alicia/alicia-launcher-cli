@@ -1,7 +1,7 @@
 #include "Alicia.hpp"
-#include "util/Util.hpp"
 
-#include <cstdio>
+#include <liblauncher/util/Util.hpp>
+
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -23,7 +23,7 @@ struct Settings
   alicia::WebInfo _webInfoContent;
   std::string _executableProgram;
   std::string _executableArguments;
-  bool _launch = true;
+  bool _launch = false;
 };
 
 //! Loads settings from file.
@@ -33,9 +33,7 @@ void load_settings(const std::string_view& path, Settings& settings)
 {
   std::ifstream settingsFile(path.data());
   if (!settingsFile.is_open())
-  {
     throw std::runtime_error("The settings file does not exist.");
-  }
 
   try
   {
@@ -71,55 +69,44 @@ void load_settings(const std::string_view& path, Settings& settings)
   }
 }
 
-//! Registers the alicia launch protocol in the registry.
-//! @param name name of the protocol
-//! @param path absolute path to the protocol command executable
-void register_protocol(const std::string& name, const std::string& path)
-{
-  HKEY protocol, command;
-  int result;
-
-  result = RegCreateKeyA(HKEY_CLASSES_ROOT, (LPCSTR)name.c_str(), &protocol);
-  if (result != ERROR_SUCCESS)
-    throw std::runtime_error("failed to create registry key HKEY_CLASSES_ROOT\\a2launch");
-
-  result = RegSetValueEx(protocol, nullptr, 0, REG_SZ, (LPBYTE) "URL:a2launch Protocol", 22);
-  if (result != ERROR_SUCCESS)
-    throw std::runtime_error("failed to create registry value in 'HKEY_CLASSES_ROOT\\a2launch'");
-
-  result = RegSetValueEx(protocol, "URL Protocol", 0, REG_SZ, nullptr, 0);
-  if (result != ERROR_SUCCESS)
-    throw std::runtime_error("failed to create registry value in 'HKEY_CLASSES_ROOT\\a2launch'");
-
-  result = RegCreateKeyA(protocol, (LPCSTR) "shell\\open\\command", &command);
-  if (result != ERROR_SUCCESS)
-    throw std::runtime_error(
-      "failed to create registry key 'HKEY_CLASSES_ROOT\\shell\\open\\command'");
-
-  auto path_data = path.c_str();
-  result = RegSetValueEx(command, nullptr, 0, REG_SZ, (LPBYTE)path_data, strlen(path_data));
-  if (result != ERROR_SUCCESS)
-    throw std::runtime_error("failed to create registry value for command in "
-                             "'HKEY_CLASSES_ROOT\\a2launch\\shell\\open\\command'");
-}
-
 } // namespace
 
 int main(int argc, char** argv)
 {
+  std::string dir;
+  dir.resize(512);
+  dir.resize(GetCurrentDirectoryA(dir.size(),dir.data()));
+
+  spdlog::info("Working directory: {}", dir);
+
+  // Try to load the settings
   Settings settings;
   try
   {
     load_settings("settings.json", settings);
-    spdlog::info("Loaded the settings.");
+    spdlog::info("Loaded settings file");
   }
   catch (std::exception& x)
   {
-    spdlog::error("Failed to load the settings: {}.", x.what());
-    MessageBox(nullptr, "Failed to load the settings file.", "Launcher", MB_OK | MB_ICONERROR);
+    spdlog::error("Unhandled exception while loading the settings file: {}.", x.what());
+    MessageBox(
+      nullptr,
+      "Couldn't load the settings file, is the launcher in the correct directory?",
+      "Launcher",
+      MB_OK | MB_ICONERROR);
     return 1;
   }
 
+  // Try to parse the credentials from the CLI
+  if (argc > 2)
+  {
+    settings._webInfoContent.loginId = argv[1];
+    settings._webInfoContent.authKey = argv[2];
+
+    spdlog::info("Credentials loaded from command-line");
+  }
+
+  // Host the web info
   alicia::WebInfoHost webInfoHost;
   try
   {
@@ -130,7 +117,7 @@ int main(int argc, char** argv)
   {
     spdlog::error("Failed to host web info: {}", e.what());
     MessageBox(nullptr, "Couldn't host the web info.", "Launcher", MB_OK | MB_ICONERROR);
-    return 0;
+    return 1;
   }
 
   // If launch is not set to true, do not spawn the game.

@@ -2,6 +2,9 @@
 #define UTIL_HPP
 
 #include <string>
+#include <string_view>
+#include <vector>
+#include <unordered_map>
 
 namespace util
 {
@@ -17,6 +20,15 @@ std::wstring win32_widen(const std::string_view& narrowString);
 //! @param wideString Wide string.
 //! @returns Narrow string.
 std::string win32_narrow(const std::wstring_view& wideString);
+
+struct Url
+{
+  std::string schema;
+  std::string path;
+  std::unordered_map<std::string, std::string> query;
+};
+
+Url parse_url(const std::string& urlString);
 
 } // namespace util
 

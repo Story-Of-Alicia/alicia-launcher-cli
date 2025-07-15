@@ -27,7 +27,7 @@ struct WebInfo
   std::string installUrl;
   uint32_t serverType;
   std::string serverInfo;
-  uint32_t age;
+  uint32_t age{18};
   Sex sex;
   std::string birthday;
   uint32_t wardNo;
