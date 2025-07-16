@@ -73,12 +73,6 @@ void load_settings(const std::string_view& path, Settings& settings)
 
 int main(int argc, char** argv)
 {
-  std::string dir;
-  dir.resize(512);
-  dir.resize(GetCurrentDirectoryA(dir.size(),dir.data()));
-
-  spdlog::info("Working directory: {}", dir);
-
   // Try to load the settings
   Settings settings;
   try
@@ -98,10 +92,11 @@ int main(int argc, char** argv)
   }
 
   // Try to parse the credentials from the CLI
-  if (argc > 2)
+  if (argc > 3)
   {
-    settings._webInfoContent.loginId = argv[1];
-    settings._webInfoContent.authKey = argv[2];
+    settings._executableArguments = std::format("-GameID {}", argv[1]);
+    settings._webInfoContent.loginId = argv[2];
+    settings._webInfoContent.authKey = argv[3];
 
     spdlog::info("Credentials loaded from command-line");
   }

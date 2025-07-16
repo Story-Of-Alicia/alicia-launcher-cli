@@ -2,10 +2,8 @@
 
 #include <windows.h>
 
-#include <iostream>
 #include <format>
 #include <filesystem>
-#include <stdexcept>
 #include <string>
 
 #include <spdlog/spdlog.h>
@@ -13,75 +11,102 @@
 namespace
 {
 
+//! Launcher executable name.
+constexpr std::wstring_view LauncherExecutableName = L"alicia-launcher-cli.exe";
+
+//! Get the game install directory from the registry.
+//! @returns The path to the game install directory.
 std::filesystem::path GetGameInstallDirectory()
 {
   std::wstring pathBuffer;
   pathBuffer.resize(512);
 
   DWORD size = pathBuffer.size();
-  RegGetValueW(HKEY_CURRENT_USER, L"Software\\Story of Alicia", nullptr, RRF_RT_REG_SZ, nullptr, pathBuffer.data(), &size);
+  RegGetValueW(
+    HKEY_CURRENT_USER,
+    L"Software\\Story of Alicia",
+    nullptr,
+    RRF_RT_REG_SZ,
+    nullptr,
+    pathBuffer.data(),
+    &size);
 
-  return {util::win32_narrow(pathBuffer)};
+  return pathBuffer;
 }
 
 } // anon namespace
 
 int main(int argc, char** argv)
 {
-  const std::filesystem::path installDirectory(
-    GetGameInstallDirectory());
-  if (installDirectory.empty())
+  // Get the game install directory and validate it
+  const std::filesystem::path installDirectory = GetGameInstallDirectory();
+  spdlog::info("Game install directory: {}", installDirectory.string());
+
+  if (installDirectory.empty()
+    || not std::filesystem::exists(installDirectory))
   {
-    spdlog::error("The game is not correctly installed, or not installed at all");
-    std::cin.ignore();
+    spdlog::error("The game install directory is empty or does not exist.");
+    MessageBox(
+      nullptr,
+      "The game install directory is empty or does not exist. "
+      "The game is not correctly installed.",
+      "Launcher Bridge",
+      MB_OK | MB_ICONERROR);
     return 1;
   }
 
+  // Set the working directory to the install directory
   SetCurrentDirectoryW(installDirectory.c_str());
-  spdlog::info("Install directory: {}", installDirectory.string());
 
-  std::vector<std::string> parameters;
+  // Parse the launch URI
+  std::vector<std::string> credentials;
   try
   {
-    spdlog::info("Performing configuration");
+    const std::string uriString = argv[1];
+    auto uri = util::ParseUri(uriString);
 
-    const std::string urlString = argv[1];
-    auto url = util::parse_url(urlString);
+    credentials.emplace_back(uri.path);
+    credentials.emplace_back(uri.query["username"]);
+    credentials.emplace_back(uri.query["token"]);
 
-    parameters.emplace_back(url.query["username"]);
-    parameters.emplace_back(url.query["token"]);
+    spdlog::info("Parsed the launch URI");
   }
   catch (const std::exception& x)
   {
-    spdlog::error(
-      "Unhandled exception while performing configuration: {}",
-      x.what());
+    spdlog::error("Failed to parse the launch URI: {}", x.what());
+    MessageBox(
+      nullptr,
+      "Failed to parse the launch URI. Check the console.",
+      "Launcher Bridge",
+      MB_OK | MB_ICONERROR);
     return 0;
   }
 
-  const auto launcherPath = installDirectory / "alicia-launcher-cli.exe";
-
-  std::wstring executableParameters;
-  for (const auto& parameter : parameters)
+  // Build the parameters for the executable
+  std::wstring parameters;
+  for (const auto& parameter : credentials)
   {
-    executableParameters += util::win32_widen(parameter);
-    executableParameters += L" ";
+    parameters += util::win32_widen(parameter);
+    parameters += L" ";
   }
 
-  SHELLEXECUTEINFOW sei{
-    sizeof(sei)};
-  sei.lpVerb = L"runas";
-  sei.lpFile = launcherPath.c_str();
-  sei.lpParameters = executableParameters.c_str();
-  sei.lpDirectory = launcherPath.parent_path().c_str();
-  sei.nShow = SW_SHOWNORMAL;
-  sei.fMask = SEE_MASK_NOCLOSEPROCESS;
+  SHELLEXECUTEINFOW shellExecuteCtx{
+    .cbSize = sizeof(shellExecuteCtx),
+    .fMask = SEE_MASK_NOCLOSEPROCESS,
+    .lpVerb = L"runas",
+    .lpFile = LauncherExecutableName.data(),
+    .lpParameters = parameters.c_str(),
+    .lpDirectory = installDirectory.c_str(),
+    .nShow = SW_SHOWNORMAL,};
 
-  if (not ShellExecuteExW(&sei)) {
-    DWORD err = GetLastError();
-    spdlog::error("Unhandled Win error while launching the launcher: {}", err);
-
-    std::cin.ignore();
+  if (not ShellExecuteExW(&shellExecuteCtx)) {
+    const DWORD err = GetLastError();
+    spdlog::error("Failed to bridge to the launcher: Windows error {}", err);
+    MessageBox(
+      nullptr,
+      "Failed to start the launcher. Check the console.",
+      "Launcher Bridge",
+      MB_OK | MB_ICONERROR);
   }
 
   return 0;

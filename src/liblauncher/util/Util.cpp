@@ -57,44 +57,44 @@ std::string win32_narrow(const std::wstring_view& wideString)
   return narrowString;
 }
 
-Url parse_url(const std::string& urlString)
+Uri ParseUri(const std::string& uriString)
 {
-  if (urlString.empty())
+  if (uriString.empty())
     return {};
 
-  const auto urlSchemaEndPosition = urlString.find("://");
-  if (urlSchemaEndPosition == std::string::npos)
-    throw std::runtime_error("Invalid URL, missing schema");
+  const auto uriSchemaEndPosition = uriString.find("://");
+  if (uriSchemaEndPosition == std::string::npos)
+    throw std::runtime_error("Invalid URI, missing schema");
 
-  const auto urlQueryStartPosition = urlString.find('?');
+  const auto uriQueryStartPosition = uriString.find('?');
 
-  Url url{
-    .schema = urlString.substr(
-      0, urlSchemaEndPosition),
-    .path = urlString.substr(
-      urlSchemaEndPosition + 3, urlQueryStartPosition - (urlSchemaEndPosition + 3))};
+  Uri uri{
+    .schema = uriString.substr(
+      0, uriSchemaEndPosition),
+    .path = uriString.substr(
+      uriSchemaEndPosition + 3, uriQueryStartPosition - (uriSchemaEndPosition + 3))};
 
-  if (urlQueryStartPosition == std::string::npos)
-    return url;
+  if (uriQueryStartPosition == std::string::npos)
+    return uri;
 
-  const std::string urlQueryString = urlString.substr(
-    urlQueryStartPosition + 1);
+  const std::string uriQueryString = uriString.substr(
+    uriQueryStartPosition + 1);
 
   size_t offset = 0;
   while (true)
   {
-    const auto endKeyVal = urlQueryString.find('&', offset);
-    const std::string keyVal = urlQueryString.substr(offset, endKeyVal);
+    const auto endKeyVal = uriQueryString.find('&', offset);
+    const std::string keyVal = uriQueryString.substr(offset, endKeyVal);
 
     const auto keyValMiddle = keyVal.find('=');
-    url.query[keyVal.substr(0, keyValMiddle)] = keyVal.substr(keyValMiddle + 1);
+    uri.query[keyVal.substr(0, keyValMiddle)] = keyVal.substr(keyValMiddle + 1);
 
     if (endKeyVal == std::string::npos)
       break;
     offset += endKeyVal + 1;
   }
 
-  return url;
+  return uri;
 }
 
 } // namespace util
